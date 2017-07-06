@@ -123,6 +123,8 @@ with h5py.File(file_name, 'r') as f:
 - Simple Lua (Torch 7) code to load the model:
 
 ```
+require 'cudnn'
+require 'rnn'
 loadFile = 'uni_image_np_50.t7'
 net = torch.load(loadFile)
 print(net)
