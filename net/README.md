@@ -1,3 +1,15 @@
+#requirement
+
+luarocks install class
+luarocks install mattorch
+luarocks install rnn
+luarocks install nn
+luarocks install torch
+luarocks install cutorch
+luarocks install cunn
+luarocks install dpnn
+luarocks install torchx
+
 # Building Torch
 
 DIGITS recommends a build of Torch7 to use as an alternative backend to Caffe, though it is not required.
@@ -49,12 +61,4 @@ luarocks install "https://raw.githubusercontent.com/ngimel/nccl.torch/master/ncc
 Follow [these instructions](GettingStartedTorch.md) for information on getting started with Torch7 in DIGITS.
 
 
-luarocks install class
-luarocks install mattorch
-luarocks install rnn
-luarocks install nn
-luarocks install torch
-luarocks install cutorch
-luarocks install cunn
-luarocks install dpnn
-luarocks install torchx
+
