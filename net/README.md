@@ -23,6 +23,9 @@ luarocks install dpnn
 
 luarocks install torchx
 
+
+https://github.com/Element-Research/rnn/pull/319/files
+
 # Building Torch
 
 DIGITS recommends a build of Torch7 to use as an alternative backend to Caffe, though it is not required.
