@@ -56,3 +56,5 @@ luarocks install nn
 luarocks install torch
 luarocks install cutorch
 luarocks install cunn
+luarocks install dpnn
+luarocks install torchx
