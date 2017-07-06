@@ -53,3 +53,6 @@ luarocks install class
 luarocks install mattorch
 luarocks install rnn
 luarocks install nn
+luarocks install torch
+luarocks install cutorch
+luarocks install cunn
