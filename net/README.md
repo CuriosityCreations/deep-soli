@@ -47,3 +47,9 @@ luarocks install "https://raw.githubusercontent.com/ngimel/nccl.torch/master/ncc
 ## Getting Started With Torch7 in DIGITS
 
 Follow [these instructions](GettingStartedTorch.md) for information on getting started with Torch7 in DIGITS.
+
+
+luarocks install class
+luarocks install mattorch
+luarocks install rnn
+luarocks install nn
