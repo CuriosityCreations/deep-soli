@@ -1,3 +1,8 @@
+# Bugs
+luarocks install cutorch 1.0-0
+
+https://github.com/Element-Research/rnn/pull/319/files
+
 # requirement
 
 luarocks install class
