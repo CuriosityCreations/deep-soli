@@ -111,12 +111,22 @@ def deepnn(x, rnn):
     h_lstm_stack = tf.expand_dims(h_fc2_mul, 1)
     print(np.shape(h_lstm_stack))
 
-    h_lstm_cell = tf.nn.rnn_cell.LSTMCell(fc_size)
-    h_lstm_dropout = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell, input_keep_prob=0.5, output_keep_prob=0.5)
-    init_state = h_lstm_dropout.zero_state(n_steps, tf.float32)
+    h_lstm_cell_fw = tf.nn.rnn_cell.LSTMCell(fc_size/2)
+    h_lstm_cell_bw = tf.nn.rnn_cell.LSTMCell(fc_size/2)
+
+    h_lstm_dropout_fw = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell_fw, input_keep_prob=0.5, output_keep_prob=0.5)
+    h_lstm_dropout_bw = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell_bw, input_keep_prob=0.5, output_keep_prob=0.5)
+
+    init_state_fw = h_lstm_cell_fw.zero_state(n_steps, tf.float32)
+    init_state_bw = h_lstm_cell_bw.zero_state(n_steps, tf.float32)
 
     # Creates a recurrent neural network
-    h_lstms, _ = tf.nn.dynamic_rnn(h_lstm_dropout, h_lstm_stack, initial_state=init_state)
+    h_lstms, _ = tf.nn.bidirectional_dynamic_rnn(h_lstm_cell_fw, 
+                                                 h_lstm_cell_bw, 
+                                                 h_lstm_stack,
+                                                 initial_state_fw=init_state_fw,
+                                                 initial_state_bw=init_state_bw )
+
     print(np.shape(h_lstms))
     h_lstm = tf.reshape(h_lstms, [-1, 512])
     print(np.shape(h_lstm))
@@ -240,6 +250,7 @@ def main(file_dir):
 
     # Train steps
     train_step = tf.train.AdamOptimizer(1e-3).minimize(cost)
+
     
     # Accuracy
     correct_prediction = tf.equal(tf.argmax(y_fc3, 1), tf.argmax(y_, 1))
