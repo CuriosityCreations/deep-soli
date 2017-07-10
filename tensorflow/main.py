@@ -106,17 +106,18 @@ def deepnn(x, rnn):
     h_fc2_mul = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
 
     # LSTM Layer
-    fc_size = 512
-    n_steps = rnn
+    n_steps = 512
+    fc_size = rnn
     h_lstm_stack = tf.expand_dims(h_fc2_mul, 1)
     print(np.shape(h_lstm_stack))
 
-    h_lstm_cell = tf.nn.rnn_cell.LSTMCell(fc_size)
+    h_lstm_cell = tf.nn.rnn_cell.LSTMCell(n_steps)
     h_lstm_dropout = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell, input_keep_prob=0.5, output_keep_prob=0.5)
-    init_state = h_lstm_dropout.zero_state(n_steps, tf.float32)
+    #init_state = h_lstm_dropout.zero_state(fc_size, tf.float32)
 
     # Creates a recurrent neural network
-    h_lstms, _ = tf.nn.dynamic_rnn(h_lstm_dropout, h_lstm_stack, initial_state=init_state)
+    h_lstms, _ = tf.nn.dynamic_rnn(h_lstm_dropout, h_lstm_stack, dtype=tf.float32)
+
     print(np.shape(h_lstms))
     h_lstm = tf.reshape(h_lstms, [-1, 512])
     print(np.shape(h_lstm))
@@ -220,9 +221,9 @@ def main(file_dir):
     
     
     batchsize = 200
-    rnnsteps = 256
+    rnnsteps = 40
     epoch = 50
-    batch_iter = 1000
+    batch_iter = 10000
     file_dir = "../../dsp/*.h5"
 
     # Create the model
@@ -266,7 +267,7 @@ def main(file_dir):
     
                 if b % 100 == 0:
                     
-                    sys.stdout.write('\r')
+                    sys.stdout.write('\n')
                     j = np.float(((b) / (batch_iter)) * 100)
                     sys.stdout.write("Training Progress: [%-20s] %.3f%%  " % ('='*np.int(j/5), 1*j))
 

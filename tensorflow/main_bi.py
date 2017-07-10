@@ -106,26 +106,28 @@ def deepnn(x, rnn):
     h_fc2_mul = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
 
     # LSTM Layer
-    fc_size = 512
-    n_steps = rnn
+    n_steps = 512
+    fc_size = rnn
     h_lstm_stack = tf.expand_dims(h_fc2_mul, 1)
     print(np.shape(h_lstm_stack))
 
-    h_lstm_cell_fw = tf.nn.rnn_cell.LSTMCell(fc_size/2)
-    h_lstm_cell_bw = tf.nn.rnn_cell.LSTMCell(fc_size/2)
+    with tf.variable_scope("bilstm"):
+        h_lstm_cell_fw = tf.nn.rnn_cell.LSTMCell(n_steps/2)
+        h_lstm_cell_bw = tf.nn.rnn_cell.LSTMCell(n_steps/2)
 
-    h_lstm_dropout_fw = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell_fw, input_keep_prob=0.5, output_keep_prob=0.5)
-    h_lstm_dropout_bw = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell_bw, input_keep_prob=0.5, output_keep_prob=0.5)
+        h_lstm_dropout_fw = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell_fw, input_keep_prob=0.5, output_keep_prob=0.5)
+        h_lstm_dropout_bw = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell_bw, input_keep_prob=0.5, output_keep_prob=0.5)
 
-    init_state_fw = h_lstm_cell_fw.zero_state(n_steps, tf.float32)
-    init_state_bw = h_lstm_cell_bw.zero_state(n_steps, tf.float32)
+        #init_state_fw = h_lstm_cell_fw.zero_state(fc_size, tf.float32)
+        #init_state_bw = h_lstm_cell_bw.zero_state(fc_size, tf.float32)
 
     # Creates a recurrent neural network
-    h_lstms, _ = tf.nn.bidirectional_dynamic_rnn(h_lstm_cell_fw, 
-                                                 h_lstm_cell_bw, 
+    h_lstms, _ = tf.nn.bidirectional_dynamic_rnn(h_lstm_cell_fw,
+                                                 h_lstm_cell_bw,
                                                  h_lstm_stack,
-                                                 initial_state_fw=init_state_fw,
-                                                 initial_state_bw=init_state_bw )
+                                                 #initial_state_fw=init_state_fw,
+                                                 #initial_state_bw=init_state_bw,
+                                                 scope="bilstm", dtype=tf.float32)
 
     print(np.shape(h_lstms))
     h_lstm = tf.reshape(h_lstms, [-1, 512])
@@ -230,9 +232,9 @@ def main(file_dir):
     
     
     batchsize = 200
-    rnnsteps = 256
+    rnnsteps = 40
     epoch = 50
-    batch_iter = 1000
+    batch_iter = 10000
     file_dir = "../../dsp/*.h5"
 
     # Create the model
@@ -277,7 +279,7 @@ def main(file_dir):
     
                 if b % 100 == 0:
                     
-                    sys.stdout.write('\r')
+                    sys.stdout.write('\n')
                     j = np.float(((b) / (batch_iter)) * 100)
                     sys.stdout.write("Training Progress: [%-20s] %.3f%%  " % ('='*np.int(j/5), 1*j))
 
