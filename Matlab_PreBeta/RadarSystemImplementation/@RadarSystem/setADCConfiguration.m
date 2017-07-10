@@ -1,0 +1,9 @@
+function setADCConfiguration(obj)
+
+message = [typecast(cast(MessageType.SetADCConfig, 'uint8'),'uint8'), ...
+    typecast(cast(obj.m_fSamplingRate, 'single'),'uint8'), ...
+    typecast(cast(obj.m_uResolution, 'uint8'),'uint8'), ...
+    typecast(cast(obj.m_uCalibrationMode, 'uint8'),'uint8')];
+
+obj.sendMessage(message);
+obj.waitForStatus;
