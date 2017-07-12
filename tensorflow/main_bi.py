@@ -47,7 +47,7 @@ def batch_norm(x, n_out, phase_train):
 
     return normed
 
-def deepnn(x, rnn):
+def deepnn(x, rnn, trainmode, keep_prob1, keep_prob2):
 
     # Four channel range-dopler map
     x_rdmap = tf.reshape(x, [-1, 32, 32, 4])
@@ -61,7 +61,8 @@ def deepnn(x, rnn):
 
     h_bn1 = tf.contrib.layers.batch_norm(h_conv1, 
                                          center=True, scale=True, 
-                                         is_training=True)
+                                         is_training=trainmode,
+                                         updates_collections=tf.GraphKeys.UPDATE_OPS)
     print(np.shape(h_bn1))
     h_relu1 = tf.nn.relu(h_bn1)
     #h_drop1 = tf.nn.dropout(h_relu1, 0.6)
@@ -72,9 +73,10 @@ def deepnn(x, rnn):
     h_conv2  = conv2d(h_relu1, W_conv2, 2) + b_conv2
     h_bn2 = tf.contrib.layers.batch_norm(h_conv2, 
                                          center=True, scale=True, 
-                                         is_training=True)
+                                         is_training=trainmode,
+                                         updates_collections=tf.GraphKeys.UPDATE_OPS)
     h_relu2 = tf.nn.relu(h_bn2)
-    h_drop2 = tf.nn.dropout(h_relu2, 0.6)
+    h_drop2 = tf.nn.dropout(h_relu2, keep_prob1)
 
     # Convolutional layer 3: map 64 feature maps to 128 feature maps
     W_conv3  = weight_variable([3, 3, 64, 128])
@@ -82,23 +84,25 @@ def deepnn(x, rnn):
     h_conv3  = conv2d(h_drop2, W_conv3, 2) + b_conv3
     h_bn3 = tf.contrib.layers.batch_norm(h_conv3, 
                                          center=True, scale=True, 
-                                         is_training=True)
+                                         is_training=trainmode,
+                                         updates_collections=tf.GraphKeys.UPDATE_OPS)
     h_relu3 = tf.nn.relu(h_bn3)
-    h_drop3 = tf.nn.dropout(h_relu3, 0.6)
+    h_drop3 = tf.nn.dropout(h_relu3, keep_prob1)
     print(np.shape(h_drop3))
 
     # Fully connected layer 1
-    W_fc1 = weight_variable([4 * 4 * 128, 512])
+    W_fc1 = weight_variable([3 * 3 * 128, 512])
     b_fc1 = bias_variable([512])
 
-    h_fc1_flat = tf.reshape(h_drop3, [-1, 4 * 4 * 128])
+    h_fc1_flat = tf.reshape(h_drop3, [-1, 3 * 3 * 128])
     h_fc1_mul  = tf.matmul(h_fc1_flat, W_fc1) + b_fc1
     h_fc1_bn = tf.contrib.layers.batch_norm(h_fc1_mul, 
                                             center=True, scale=True, 
-                                            is_training=True)
+                                            is_training=trainmode,
+                                            updates_collections=tf.GraphKeys.UPDATE_OPS)
 
     h_fc1_relu = tf.nn.relu(h_fc1_bn)
-    h_fc1_drop = tf.nn.dropout(h_fc1_relu, 0.5)
+    h_fc1_drop = tf.nn.dropout(h_fc1_relu, keep_prob2)
 
     # Fully connected layer 2 for LSTM
     W_fc2 = weight_variable([512, 512])
@@ -107,16 +111,16 @@ def deepnn(x, rnn):
 
     # LSTM Layer
     n_steps = 512
-    fc_size = rnn
+    #fc_size = rnn
     h_lstm_stack = tf.expand_dims(h_fc2_mul, 1)
     print(np.shape(h_lstm_stack))
 
     with tf.variable_scope("bilstm"):
-        h_lstm_cell_fw = tf.nn.rnn_cell.LSTMCell(n_steps/2)
-        h_lstm_cell_bw = tf.nn.rnn_cell.LSTMCell(n_steps/2)
+        h_lstm_cell_fw = tf.nn.rnn_cell.LSTMCell(n_steps/2, forget_bias=0.0)
+        h_lstm_cell_bw = tf.nn.rnn_cell.LSTMCell(n_steps/2, forget_bias=0.0)
 
-        h_lstm_dropout_fw = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell_fw, input_keep_prob=0.5, output_keep_prob=0.5)
-        h_lstm_dropout_bw = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell_bw, input_keep_prob=0.5, output_keep_prob=0.5)
+        h_lstm_dropout_fw = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell_fw, input_keep_prob=keep_prob2, output_keep_prob=keep_prob2)
+        h_lstm_dropout_bw = tf.nn.rnn_cell.DropoutWrapper(h_lstm_cell_bw, input_keep_prob=keep_prob2, output_keep_prob=keep_prob2)
 
         #init_state_fw = h_lstm_cell_fw.zero_state(fc_size, tf.float32)
         #init_state_bw = h_lstm_cell_bw.zero_state(fc_size, tf.float32)
@@ -157,7 +161,8 @@ def bias_variable(shape):
 def conv2d(x, W, stride):
     
     # Generates convolution net with stride=stride
-    return tf.nn.conv2d(x, W, strides=[1, stride, stride, 1], padding='SAME')
+    # VALID: without padding, SAME: zero padding
+    return tf.nn.conv2d(x, W, strides=[1, stride, stride, 1], padding='VALID')
 
 def data_batch(data, label, rnnsteps):
 
@@ -243,15 +248,24 @@ def main(file_dir):
     # Define loss and optimizer
     y_ = tf.placeholder(tf.float32, [None, 13])
 
+    # Whether it's in training mode
+    trainmode = tf.placeholder(tf.bool)
+
+    # Keep Probability for dropouts
+    keep_prob1 = tf.placeholder(tf.float32)
+    keep_prob2 = tf.placeholder(tf.float32)
+
     # Build the graph for the deep net
-    y_fc3 = deepnn(x, rnnsteps)
+    y_fc3 = deepnn(x, rnnsteps, trainmode, keep_prob1, keep_prob2)
 
     # Logsoftmax for the output of net
     #y_fc3_softmax  = tf.nn.log_softmax(y_fc3)
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_fc3, labels=y_))
 
     # Train steps
-    train_step = tf.train.AdamOptimizer(1e-3).minimize(cost)
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies(update_ops):
+        train_step = tf.train.AdamOptimizer(1e-3).minimize(cost)
 
     
     # Accuracy
@@ -286,13 +300,17 @@ def main(file_dir):
                     if b == 0:
                         sys.stdout.write("Avr Accuracy: %.3f%%  " % (0))
                     else:
-                        train_accuracy = accuracy.eval(feed_dict={x: data_batchseq, y_: label_batchseq})
+                        train_accuracy = accuracy.eval(feed_dict={x: data_batchseq, y_: label_batchseq, 
+                                                                  trainmode: False, keep_prob1:1, keep_prob2:1})
                         accum = accum + train_accuracy
                         sys.stdout.write("Avr Accuracy: %.3f%%  " % (accum*100*100/b))
 
                     sys.stdout.write("Epoch: %d" % (e))
                     sys.stdout.flush()
-                train_step.run(feed_dict={x: data_batchseq, y_: label_batchseq})
+
+                # Training the net
+                train_step.run(feed_dict={x: data_batchseq, y_: label_batchseq, 
+                                          trainmode: True, keep_prob1:0.6, keep_prob2:0.5})
             # Epoth finish
             sys.stdout.write('\n\n')
 
